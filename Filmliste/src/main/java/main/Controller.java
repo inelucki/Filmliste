@@ -34,6 +34,9 @@ public class Controller {
 	public HttpEntity<Film> deleteFilm(@PathVariable String filmname){
 		String c = "DELETE irgendein film";
 		Film film = new Film(filmname, c);
+		if(repo.exists(filmname)){
+			repo.delete(film);
+		}
 		film.add(linkTo(methodOn(Controller.class).deleteFilm(filmname)).withSelfRel());
 		return new ResponseEntity<Film>(film, HttpStatus.OK);
 	}
