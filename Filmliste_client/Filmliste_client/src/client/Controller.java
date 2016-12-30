@@ -16,6 +16,41 @@ public class Controller {
 		//TODO init Data
 	}
 	
+	public String createFilm(String s){
+		//TODO
+		return null;
+	}
+	
+	public String updateFilm(Film f, String content){
+		//TODO
+				return null;
+	}
+	
+	public String deleteFilm(Film f){
+		//TODO
+				return null;
+	}
+	
+	public String createTag(String s){
+		//TODO
+				return null;
+	}
+	
+	public String deleteTag(String s){
+		//TODO
+				return null;
+	}
+	
+	public String deleteTagFromFilm(String s){
+		//TODO
+				return null;
+	}
+	
+	public String addTagToFilm(String s){
+		//TODO
+				return null;
+	}
+	
 	private void dummydata(){
 		Tag a = Tag.getTag("Action");
 		Tag b = Tag.getTag("comedy");
