@@ -1,9 +1,13 @@
 package client;
 
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
+import javafx.scene.Node;
 import javafx.scene.control.Accordion;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -20,9 +24,11 @@ import javafx.stage.Stage;
 
 public class UI extends Application {
 	
+	private final String defaultInfo = "Es gab einen Fehler aber keine Meldung dazu. Ganz doll...";
 	private Controller controller;
 	private final FlowPane flowpane = new FlowPane();
 	private final Accordion accordion = new Accordion ();
+	private HashMap<Film,TitledPane> pns = new HashMap<>();
 	
 	public static void main(String[] args) {
         launch(args);
@@ -61,123 +67,188 @@ public class UI extends Application {
         hboxfilm.getChildren().addAll(textFilm, btnFilm);
         
         for (Film f : controller.getFilme()) {
-        	TextArea ta = new TextArea();
-        	ta.setText(f.getContent());
-        	TitledPane p = new TitledPane();
-        	
-        	Label lblTags = generateFilmTagLabel(f.getTags());
-        	TextField txtFilmTag = new TextField();
-        	Button btnAddTagToFilm = new Button("Add Tag");
-        	btnAddTagToFilm.setOnAction(k -> addTagToFilm(f, txtFilmTag.getText().trim(), lblTags));
-        	Button btnDeleteTagFromFilm = new Button("Delete Tag");
-        	btnDeleteTagFromFilm.setOnAction(k -> removeTagFromFilm(f, txtFilmTag.getText().trim(), lblTags));
-        	HBox filmTagControl = new HBox();
-        	filmTagControl.getChildren().addAll(txtFilmTag, btnAddTagToFilm, btnDeleteTagFromFilm);
-        	
-        	Button btnUpdate = new Button("Update");
-        	btnUpdate.setOnAction(k -> updateFilm(f, ta));
-        	Button btnDelete = new Button("Delete");
-        	btnDelete.setOnAction(k -> deleteFilm(f, p));
-        	HBox filmControl = new HBox();
-        	filmControl.getChildren().addAll(btnUpdate, btnDelete);
-        	
-        	VBox vbxFilm = new VBox();
-        	vbxFilm.getChildren().addAll(lblTags, filmTagControl, ta, filmControl);
-        	
-        	p.setContent(vbxFilm);
-        	p.setText(f.getName());
-        	accordion.getPanes().add(p);
+        	generateTitledPane(f);
         }   
         
         vbox.getChildren().addAll(flowpane, hboxtags, hboxfilm, accordion);
+        refreshFilter();
         root.getChildren().add(vbox);
         primaryStage.setScene(new Scene(root, 600, 500));
         //primaryStage.setMaximized(true);
         primaryStage.show();
     }
 	
-	private Label generateFilmTagLabel(List<Tag> tags){
+	private void generateTitledPane(Film f){
+		TextArea ta = new TextArea();
+    	ta.setText(f.getContent());
+    	
+    	Label lblTags = new Label(generateFilmTagLabelContent(f.getTags()));
+    	TextField txtFilmTag = new TextField();
+    	Button btnAddTagToFilm = new Button("Add Tag");
+    	btnAddTagToFilm.setOnAction(k -> addTagToFilm(f, txtFilmTag.getText().trim(), lblTags));
+    	Button btnDeleteTagFromFilm = new Button("Delete Tag");
+    	btnDeleteTagFromFilm.setOnAction(k -> removeTagFromFilm(f, txtFilmTag.getText().trim(), lblTags));
+    	HBox filmTagControl = new HBox();
+    	filmTagControl.getChildren().addAll(txtFilmTag, btnAddTagToFilm, btnDeleteTagFromFilm);
+    	
+    	Button btnUpdate = new Button("Update");
+    	btnUpdate.setOnAction(k -> updateFilm(f, ta));
+    	Button btnDelete = new Button("Delete");
+    	btnDelete.setOnAction(k -> deleteFilm(f));
+    	HBox filmControl = new HBox();
+    	filmControl.getChildren().addAll(btnUpdate, btnDelete);
+    	
+    	VBox vbxFilm = new VBox();
+    	vbxFilm.getChildren().addAll(lblTags, filmTagControl, ta, filmControl);
+    	
+    	TitledPane p = new TitledPane();
+    	p.setContent(vbxFilm);
+    	p.setText(f.getName());
+    	pns.put(f, p);
+	}
+	
+	private String generateFilmTagLabelContent(List<Tag> tags){
 		StringBuffer bf = new StringBuffer("Tags : ");
 		for(Tag t : tags){
 			bf.append(t.getTag()+", ");
 		}
-		return new Label(bf.toString());
+		return bf.toString();
 	}
 	
 	private void refreshFilter(){
+		LinkedList<Tag> selected = new LinkedList<>();
+		flowpane.getChildren().stream().forEach(f ->{
+			if(f instanceof CheckBox){
+				CheckBox box = (CheckBox) f;
+				if(box.isSelected()){
+					selected.add(Tag.getTag(box.getText()));
+				}
+			}
+		});
+		accordion.getPanes().clear();
 		
+		if(selected.isEmpty()){
+			accordion.getPanes().addAll(pns.values());
+		}
+		else{
+			for(Entry<Film, TitledPane> elem : pns.entrySet()){
+				boolean check = true;
+				for(Tag t : selected){
+					if(!elem.getKey().hasTag(t)){
+						check = false;
+						break;
+					}
+				}
+				if(check){
+					accordion.getPanes().add(elem.getValue());
+				}
+			}
+		}
 	}
 	
 	private void createFilm(String str){
-		
+		ResponseObject resp = controller.createFilm(str);
+		if(resp.isOk() && resp.getFilm() != null){
+			generateTitledPane(resp.getFilm());
+			refreshFilter();
+		}
+		else{
+			showDialog(resp.getInfoMessage());
+		}
 	}
 	
 	private void updateFilm(Film f, TextArea t){
-		
+		if(t.getText().equals(f.getContent())){
+			showDialog("Kein Update, da selbe Beschreibung");
+		}
+		else{
+			ResponseObject resp = controller.updateFilm(f, t.getText());
+			if(!resp.isOk()){
+				showDialog(resp.getInfoMessage());
+			}
+		}
 	}
 	
-	private void deleteFilm(Film f, TitledPane p){
-		
+	private void deleteFilm(Film f){
+		ResponseObject resp = controller.deleteFilm(f);
+		if(resp.isOk()){
+			pns.remove(f);
+			refreshFilter();
+		}
+		else{
+			showDialog(resp.getInfoMessage());
+		}
 	}
 	
 	private void createTag(String str){
-		
+		ResponseObject resp = controller.createTag(str);
+		if(resp.isOk()){
+			CheckBox c = new CheckBox(Tag.getTag(str).getTag());
+			c.setSelected(false);
+			c.setOnAction(f -> refreshFilter());
+			flowpane.getChildren().add(c);
+		}
+		else{
+			showDialog(resp.getInfoMessage());
+		}
 	}
 	
 	private void deleteTag(String str){
-		
+		ResponseObject resp = controller.deleteTag(str);
+		if(resp.isOk()){
+			for(Node n : flowpane.getChildren()){
+				if(n instanceof CheckBox){
+					if(Tag.getTag(((CheckBox) n).getText()).equals(Tag.getTag(str))){
+						flowpane.getChildren().remove(n);
+						break;
+					}
+				}
+			}
+			refreshFilter();
+		}
+		else{
+			showDialog(resp.getInfoMessage());
+		}
 	}
 	
 	private void addTagToFilm(Film f, String t, Label l){
-		
+		if(Tag.existTag(t)){
+			ResponseObject resp = controller.addTagToFilm(f, t);
+			if(resp.isOk()){
+				l.setText(generateFilmTagLabelContent(f.getTags()));
+				refreshFilter();
+			}
+			else{
+				showDialog(resp.getInfoMessage());
+			}
+		}
+		else{
+			showDialog("Diesen Tag gibt es nicht!");
+		}
 	}
 	
 	private void removeTagFromFilm(Film f, String t, Label l){
-		
+		if(Tag.existTag(t)){
+			ResponseObject resp = controller.deleteTagFromFilm(f, t);
+			if(resp.isOk()){
+				l.setText(generateFilmTagLabelContent(f.getTags()));
+				refreshFilter();
+			}
+			else{
+				showDialog(resp.getInfoMessage());
+			}
+		}
+		else{
+			showDialog("Diesen Tag gibt es nicht!");
+		}
 	}
 	
 	private void showDialog(String msg){
+		String info = msg != null ? msg : defaultInfo;
 		Alert alert = new Alert(Alert.AlertType.INFORMATION);
 		alert.setTitle("Information");
 		alert.setHeaderText(null);
-		alert.setContentText(msg);
+		alert.setContentText(info);
 		alert.showAndWait();
 	}
-
-	
-//    @Override
-//    public void start(Stage primaryStage) {
-//        primaryStage.setTitle("Client");
-//        
-//        Button btnPut = new Button("Film hinzufuegen");
-//        btnPut.setOnAction(f->{
-//        	JSONObject json = new JSONObject();
-//        	json.put("content", descriptionfield.getText());
-//        	String response = HttpHandler.sendRequestWithPayload("filme/"+textfield.getText(), "PUT", json.toString());
-//        	textarea.clear();
-//        	textarea.setText(response);
-//        });
-//        Button btnDelete = new Button("Film loeschen");
-//        btnDelete.setOnAction(f->{
-//        	String response = HttpHandler.sendSimpleRequest("filme/"+textfield.getText(), "DELETE");
-//        	textarea.clear();
-//        	textarea.setText(response);
-//        });
-//        Button btnGetAll = new Button("alle Filme auslesen");
-//        btnGetAll.setOnAction(f->{
-//        	String response = HttpHandler.sendSimpleRequest("filmliste", "GET");
-//        	textarea.clear();
-//        	textarea.setText(response);
-//        });
-//        
-//        StackPane root = new StackPane();
-//        VBox vbox = new VBox();
-//        vbox.getChildren().addAll(textfield, descriptionfield, btnPut, btnDelete, btnGetAll, textarea);
-//        root.getChildren().add(vbox);
-//        primaryStage.setScene(new Scene(root, 300, 250));
-//        primaryStage.show();
-//    }
-	
-   
 }
-

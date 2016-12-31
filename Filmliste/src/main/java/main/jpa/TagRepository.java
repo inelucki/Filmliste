@@ -9,4 +9,5 @@ import main.model.Tag;
 public interface TagRepository extends CrudRepository<Tag, String> {
 
     List<Tag> findByName(String name);
+    List<Tag> findByIdNumber(Long idNumber);
 }

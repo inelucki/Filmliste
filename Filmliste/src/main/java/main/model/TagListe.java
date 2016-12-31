@@ -7,15 +7,15 @@ import org.springframework.hateoas.ResourceSupport;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class Filmliste extends ResourceSupport{
-	private final List<Film> liste;
+public class TagListe  extends ResourceSupport{
+	private final List<Tag> liste;
 	
 	@JsonCreator
-	public Filmliste(@JsonProperty("liste") List<Film> liste){
+	public TagListe(@JsonProperty("liste") List<Tag> liste){
 		this.liste = liste;
 	}
 	
-	public List<Film> getListe(){
+	public List<Tag> getListe(){
 		return liste;
 	}
 }

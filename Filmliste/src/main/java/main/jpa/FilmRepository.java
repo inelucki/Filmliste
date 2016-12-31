@@ -8,4 +8,5 @@ import main.model.Film;
 public interface FilmRepository extends CrudRepository<Film, String> {
 
     List<Film> findByName(String name);
+    List<Film> findByIdNumber(Long idNumber);
 }
