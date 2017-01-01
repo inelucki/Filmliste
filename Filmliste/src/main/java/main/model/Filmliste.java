@@ -2,16 +2,16 @@ package main.model;
 
 import java.util.List;
 
-import org.springframework.hateoas.ResourceSupport;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class Filmliste extends ResourceSupport{
+public class Filmliste extends RequestStatus{
 	private final List<Film> liste;
 	
 	@JsonCreator
-	public Filmliste(@JsonProperty("liste") List<Film> liste){
+	public Filmliste(boolean statusOK, String errormessage,
+			@JsonProperty("liste") List<Film> liste){
+		super(statusOK, errormessage);
 		this.liste = liste;
 	}
 	

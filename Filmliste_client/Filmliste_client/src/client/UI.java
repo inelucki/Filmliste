@@ -40,12 +40,17 @@ public class UI extends Application {
 	@Override
     public void start(Stage primaryStage) {
 		controller = new Controller();
+		ResponseObject resp = controller.init();
+		if(!resp.isOk()){
+			showDialog("Das Programm wird beendet. Initialisierung mit folgendem Fehler abgebrochen : "+resp.getInfoMessage());
+			return;
+		}
 		
         primaryStage.setTitle("Filmliste");
         StackPane root = new StackPane();
         VBox vbox = new VBox();
         
-        for(Tag t : Tag.getAllTags()){
+        for(Tag t : controller.getTags()){
 			CheckBox c = new CheckBox(t.getTag());
 			c.setSelected(false);
 			c.setOnAction(f -> refreshFilter());
@@ -121,7 +126,7 @@ public class UI extends Application {
 			if(f instanceof CheckBox){
 				CheckBox box = (CheckBox) f;
 				if(box.isSelected()){
-					selected.add(Tag.getTag(box.getText()));
+					selected.add(controller.getTag(box.getText()));
 				}
 			}
 		});
@@ -183,7 +188,7 @@ public class UI extends Application {
 	private void createTag(String str){
 		ResponseObject resp = controller.createTag(str);
 		if(resp.isOk()){
-			CheckBox c = new CheckBox(Tag.getTag(str).getTag());
+			CheckBox c = new CheckBox(controller.getTag(str).getTag());
 			c.setSelected(false);
 			c.setOnAction(f -> refreshFilter());
 			flowpane.getChildren().add(c);
@@ -198,7 +203,7 @@ public class UI extends Application {
 		if(resp.isOk()){
 			for(Node n : flowpane.getChildren()){
 				if(n instanceof CheckBox){
-					if(Tag.getTag(((CheckBox) n).getText()).equals(Tag.getTag(str))){
+					if(controller.getTag(((CheckBox) n).getText()).equals(controller.getTag(str))){
 						flowpane.getChildren().remove(n);
 						break;
 					}
@@ -212,7 +217,7 @@ public class UI extends Application {
 	}
 	
 	private void addTagToFilm(Film f, String t, Label l){
-		if(Tag.existTag(t)){
+		if(controller.existTag(t)){
 			ResponseObject resp = controller.addTagToFilm(f, t);
 			if(resp.isOk()){
 				l.setText(generateFilmTagLabelContent(f.getTags()));
@@ -228,7 +233,7 @@ public class UI extends Application {
 	}
 	
 	private void removeTagFromFilm(Film f, String t, Label l){
-		if(Tag.existTag(t)){
+		if(controller.existTag(t)){
 			ResponseObject resp = controller.deleteTagFromFilm(f, t);
 			if(resp.isOk()){
 				l.setText(generateFilmTagLabelContent(f.getTags()));

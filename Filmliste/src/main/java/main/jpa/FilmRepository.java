@@ -5,7 +5,7 @@ import org.springframework.data.repository.CrudRepository;
 
 import main.model.Film;
 
-public interface FilmRepository extends CrudRepository<Film, String> {
+public interface FilmRepository extends CrudRepository<Film, Long> {
 
     List<Film> findByName(String name);
     List<Film> findByIdNumber(Long idNumber);

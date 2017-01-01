@@ -3,11 +3,13 @@ package client;
 public class Tag {
 
 	private final String tag;
-	private final int id;
+	private final Long id;
+	private final String linkToDelete;
 	
-	protected Tag(String t, int id){
+	protected Tag(String t, Long id, String link){
 		tag = t;
 		this.id = id;
+		this.linkToDelete=link;
 	}
 	
 	@Override
@@ -27,8 +29,11 @@ public class Tag {
 		return tag;
 	}
 	
-	public int getId(){
+	public Long getId(){
 		return id;
 	}
 	
+	public String getLinkToDelete(){
+		return linkToDelete;
+	}
 }

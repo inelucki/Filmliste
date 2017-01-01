@@ -7,19 +7,23 @@ public class Film {
 
 	private List<Tag> tags = new LinkedList<>();
 	private final String name;
-	private final int id;
+	private final Long id;
+	private final String linkToDelete;
+	private final String linkToUpdate;
 	private String content="";
 	
-	public Film(String name, int id){
+	public Film(String name, Long id, String updateLink, String deleteLink){
 		this.name = name;
 		this.id = id;
+		this.linkToDelete = deleteLink;
+		this.linkToUpdate = updateLink;
 	}
 	
 	public String getName(){
 		return name;
 	}
 	
-	public int getId(){
+	public Long getId(){
 		return id;
 	}
 	
@@ -54,5 +58,13 @@ public class Film {
 	@Override
 	public int hashCode(){
 		return this.getName().hashCode();
+	}
+
+	public String getLinkToUpdate() {
+		return linkToUpdate;
+	}
+
+	public String getLinkToDelete() {
+		return linkToDelete;
 	}
 }

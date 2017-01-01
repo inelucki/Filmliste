@@ -8,17 +8,15 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
-import org.springframework.hateoas.ResourceSupport;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
-public class Film extends ResourceSupport {
+public class Film extends RequestStatus {
 
+	@Id
 	@GeneratedValue(strategy=GenerationType.AUTO)
 	private Long idNumber;
-	@Id
 	private String name;
     private String content;
     @ElementCollection
@@ -29,9 +27,10 @@ public class Film extends ResourceSupport {
     protected Film(){}
     
     @JsonCreator
-    public Film(@JsonProperty("idNumber") Long idNumber,
+    public Film(boolean statusOK, String errormessage, @JsonProperty("idNumber") Long idNumber,
     			@JsonProperty("name") String name, @JsonProperty("content") String content,
     			@JsonProperty("pictures") List<String> pictures, @JsonProperty("tags") List<Tag> tags) {
+    	super(statusOK, errormessage);
     	this.idNumber = idNumber;
         this.content = content;
         this.name = name;

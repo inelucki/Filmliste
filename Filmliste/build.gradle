@@ -16,7 +16,7 @@ apply plugin: 'org.springframework.boot'
 mainClassName="main.Application"
 
 jar {
-    baseName = 'gs-rest-hateoas'
+    baseName = 'filmliste_server'
     version =  '0.1.0'
 }
 
