@@ -71,6 +71,10 @@ public class Controller {
 		}
 		else{
 			tagRepo.delete(tag);
+			for(Film f : filmRepo.findAll()){
+				f.getTags().remove(tag);
+				filmRepo.save(f);
+			}
 			return new ResponseEntity<RequestStatus>(new RequestStatus(true, null), HttpStatus.OK);
 		}
 	}
@@ -136,6 +140,7 @@ public class Controller {
 				film.setStatusOK(true);
 				film.add(linkTo(methodOn(Controller.class).filmliste()).withRel("filmliste"));
 				film.add(linkTo(methodOn(Controller.class).deleteFilm(film.getIdNumber())).withRel("delete"));
+				film.add(linkTo(methodOn(Controller.class).updateFilm(film.getIdNumber(), null)).withRel("update"));
 				return new ResponseEntity<Film>(film, HttpStatus.OK);
 			}
 		}
@@ -158,9 +163,18 @@ public class Controller {
 		}
 		else{
 			//TODO
-			film.setStatusOK(false);
-			film.setErrormessage("der else zweig dieser methode : TODO");
-			return new ResponseEntity<Film>(film, HttpStatus.OK); 
+			if(payload.containsKey("content") && payload.get("content") instanceof String){
+				film.setContent((String) payload.get("content"));
+			}
+			if(payload.containsKey("tags") && payload.get("tags") instanceof List<?>){
+				List<Tag> colTags = (List<Tag>) payload.get("tags");
+				film.getTags().clear();
+				film.getTags().addAll(colTags);
+			}
+			
+			filmRepo.save(film);
+			film.setStatusOK(true);
+			return new ResponseEntity<Film>(film, HttpStatus.OK);
 		}
 	}
 	

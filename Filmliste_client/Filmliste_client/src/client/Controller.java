@@ -3,6 +3,7 @@ package client;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class Controller {
@@ -57,9 +58,20 @@ public class Controller {
 	
 	private ResponseObject readFilmliste(){
 		JSONObject baseinfo = HttpHandler.sendSimpleRequest(linkToFilmlist, "GET");
-		if(baseinfo.has("statusOK") && baseinfo.getBoolean("statusOK")){
-			//TODO
-			System.out.println(baseinfo.toString());
+		System.out.println(baseinfo.toString());
+		if(baseinfo.has("statusOK") && baseinfo.getBoolean("statusOK") && baseinfo.has("liste")){
+			filme.clear();
+			JSONArray colFilme = baseinfo.getJSONArray("liste");
+			LinkedList<Film> tmpFilme = new LinkedList<>();
+			for(int i = 0; i<colFilme.length(); i++){
+				JSONObject jsonFilm = colFilme.getJSONObject(i);
+				try{
+					Film film = Mapper.jsonToFilm(jsonFilm);
+					tmpFilme.add(film);
+				}
+				catch(NullPointerException e){return new ResponseObject(false, e.getMessage(), null);}
+			}
+			filme.addAll(tmpFilme);
 			return new ResponseObject(true, null, null);
 		}
 		else{return new ResponseObject(false, baseinfo.getString("errormessage"), null);}
@@ -67,27 +79,66 @@ public class Controller {
 	
 	private ResponseObject readTagliste(){
 		JSONObject baseinfo = HttpHandler.sendSimpleRequest(linkToTaglist, "GET");
-		if(baseinfo.has("statusOK") && baseinfo.getBoolean("statusOK")){
-			//TODO
-			System.out.println(baseinfo.toString());
+		if(baseinfo.has("statusOK") && baseinfo.getBoolean("statusOK") && baseinfo.has("liste")){
+			tags.clear();
+			JSONArray colTags = baseinfo.getJSONArray("liste");
+			LinkedList<Tag> tmpTags = new LinkedList<>();
+			for(int i = 0; i<colTags.length(); i++){
+				JSONObject jsonTag = colTags.getJSONObject(i);
+				try{
+					Tag	tag = Mapper.jsonToTag(jsonTag);
+					tmpTags.add(tag);
+				}
+				catch(NullPointerException e){return new ResponseObject(false, e.getMessage(), null);}
+			}
+			tags.addAll(tmpTags);
 			return new ResponseObject(true, null, null);
 		}
 		else{return new ResponseObject(false, baseinfo.getString("errormessage"), null);}
 	}
 	
 	public ResponseObject createFilm(String s){
-		//TODO
-		return null;
+		JSONObject req = new JSONObject();
+		req.put("film", s);
+		JSONObject resp = HttpHandler.sendRequestWithPayload(linkToFilmlist, "PUT", req);
+		System.out.println(resp.toString());
+		
+		if(resp.has("statusOK") && resp.getBoolean("statusOK")){
+			try{
+				Film film = Mapper.jsonToFilm(resp);
+				filme.add(film);
+				return new ResponseObject(true, null, film);
+			}
+			catch(NullPointerException e){return new ResponseObject(false, e.getMessage(), null);}
+		}
+		else{return new ResponseObject(false, resp.getString("errormessage"), null);}
 	}
 	
 	public ResponseObject updateFilm(Film f, String content){
-		//TODO
-				return null;
+		JSONObject req = Mapper.filmToJson(f);
+		if(req.has("content")){
+			req.remove("content");
+			req.put("content", content);
+		}
+		JSONObject resp = HttpHandler.sendRequestWithPayload(f.getLinkToUpdate(), "POST", req);
+		System.out.println(resp.toString());
+		
+		if(resp.has("statusOK") && resp.getBoolean("statusOK")){
+			f.setContent(content);
+			return new ResponseObject(true, null, null);
+		}
+		else{return new ResponseObject(false, resp.getString("errormessage"), null);}
 	}
 	
 	public ResponseObject deleteFilm(Film f){
-		//TODO
-				return null;
+		JSONObject resp = HttpHandler.sendSimpleRequest(f.getLinkToDelete(), "DELETE");
+		System.out.println(resp.toString());
+		
+		if(resp.has("statusOK") && resp.getBoolean("statusOK")){
+			filme.remove(f);
+			return new ResponseObject(true, null, null);
+		}
+		else{return new ResponseObject(false, resp.getString("errormessage"), null);}
 	}
 	
 	public ResponseObject createTag(String s){
@@ -97,69 +148,62 @@ public class Controller {
 		System.out.println(resp.toString());
 		
 		if(resp.has("statusOK") && resp.getBoolean("statusOK")){
-			if(resp.has("name") && resp.has("idNumber") && resp.has("_links")){
-				JSONObject links = resp.getJSONObject("_links");
-				if(links.has("delete")){
-					Tag tag = new Tag(resp.getString("name"), resp.getLong("idNumber"),
-										links.getJSONObject("delete").getString("href"));
-					tags.add(tag);
-					return new ResponseObject(true, null, null);
-				}
-				else{return new ResponseObject(false, "der link zur resource fehlt in der antwort.", null);}
+			try{
+				Tag tag = Mapper.jsonToTag(resp);
+				tags.add(tag);
+				return new ResponseObject(true, null, null);
 			}
-			else{return new ResponseObject(false, "in der antwort waren nicht alle erwarteten felder enthalten.", null);}
+			catch(NullPointerException e){return new ResponseObject(false, e.getMessage(), null);}
 		}
 		else{return new ResponseObject(false, resp.getString("errormessage"), null);}
 	}
 	
 	public ResponseObject deleteTag(String s){
-		//TODO
-				return null;
+		Tag tag = getTag(s);
+		JSONObject resp = HttpHandler.sendSimpleRequest(tag.getLinkToDelete(), "DELETE");
+		System.out.println(resp.toString());
+		
+		if(resp.has("statusOK") && resp.getBoolean("statusOK")){
+			tags.remove(tag);
+			ResponseObject respRefreshFilme = readFilmliste();
+			if(respRefreshFilme.isOk()){
+				return new ResponseObject(true, null, null);
+			}
+			else{return respRefreshFilme;}
+		}
+		else{return new ResponseObject(false, resp.getString("errormessage"), null);}
 	}
 	
 	public ResponseObject deleteTagFromFilm(Film f, String s){
-		//TODO
-				return null;
+		Tag tmp = getTag(s);
+		f.getTags().remove(tmp);
+		JSONObject req = Mapper.filmToJson(f);
+		JSONObject resp = HttpHandler.sendRequestWithPayload(f.getLinkToUpdate(), "POST", req);
+		System.out.println(resp.toString());
+		
+		if(resp.has("statusOK") && resp.getBoolean("statusOK")){
+			return new ResponseObject(true, null, null);
+		}
+		else{
+			f.addTag(tmp);
+			return new ResponseObject(false, resp.getString("errormessage"), null);
+		}
 	}
 	
 	public ResponseObject addTagToFilm(Film f, String s){
-		//TODO
-				return null;
-	}
-	
-	private void dummydata(){
-		Tag a = new Tag("Action", 1L, "");
-		Tag b = new Tag("comedy", 2L, "");
-		Tag c = new Tag("uhu", 3L, "");
+		JSONObject req = Mapper.filmToJson(f);
+		if(req.has("tags")){
+			JSONArray filmtags = req.getJSONArray("tags");
+			filmtags.put(Mapper.tagToJson(getTag(s)));
+		}
+		JSONObject resp = HttpHandler.sendRequestWithPayload(f.getLinkToUpdate(), "POST", req);
+		System.out.println(resp.toString());
 		
-		tags.add(a);
-		tags.add(b);
-		tags.add(c);
-		
-		Film d = new Film("Hugo", 1L, "", "");
-		d.addTag(a);
-		d.addTag(c);
-		d.setContent("Sein Name der war Hugo");
-
-		Film e = new Film("Blond", 2L, "", "");
-		e.addTag(a);
-		e.addTag(b);
-		e.setContent("Sein Name der war Blond");
-		
-		Film f = new Film("Doof", 3L, "", "");
-		f.addTag(b);
-		f.addTag(c);
-		f.setContent("Sein Name der war Doof");
-		
-		Film g = new Film("Blasssss", 4L, "", "");
-		g.addTag(c);
-		g.addTag(c);
-		g.setContent("Sein Name der war Blasss");
-		
-		filme.add(d);
-		filme.add(e);
-		filme.add(f);
-		filme.add(g);
+		if(resp.has("statusOK") && resp.getBoolean("statusOK")){
+			f.addTag(getTag(s));
+			return new ResponseObject(true, null, null);
+		}
+		else{return new ResponseObject(false, resp.getString("errormessage"), null);}
 	}
 	
 }

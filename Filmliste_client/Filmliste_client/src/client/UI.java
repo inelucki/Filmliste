@@ -209,6 +209,12 @@ public class UI extends Application {
 					}
 				}
 			}
+			
+			accordion.getPanes().clear();
+			pns.clear();
+			for(Film f : controller.getFilme()){
+				generateTitledPane(f);
+			}
 			refreshFilter();
 		}
 		else{

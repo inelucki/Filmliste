@@ -73,4 +73,8 @@ public class Film extends RequestStatus {
 	public void setPictures(List<String> pictures){
 		this.pictures=pictures;
 	}
+	
+	public void setIdNumber(Long idNumber){
+		this.idNumber=idNumber;
+	}
 }
