@@ -9,6 +9,7 @@ import org.json.JSONObject;
 public class Controller {
 
 	private static final String HOSTINDEX = "http://localhost:8080/index";
+	private Mapper mapper;
 	private String linkToFilmlist="";
 	private String linkToTaglist="";
 	private List<Film> filme = new LinkedList<>();
@@ -26,11 +27,20 @@ public class Controller {
 		return tags.stream().filter(f -> f.getTag().equals(s)).findFirst().isPresent();
 	}
 	
+	public boolean existTag(Long l){
+		return tags.stream().filter(f -> f.getId().equals(l)).findFirst().isPresent();
+	}
+	
 	public Tag getTag(String s){
 		return tags.stream().filter(f -> f.getTag().equals(s)).findFirst().get();
 	}
 	
+	public Tag getTag(Long l){
+		return tags.stream().filter(f -> f.getId().equals(l)).findFirst().get();
+	}
+	
 	public ResponseObject init(){
+		mapper = new Mapper(this);
 		ResponseObject resp;
 		
 		JSONObject baseinfo = HttpHandler.sendSimpleRequest(HOSTINDEX, "GET");
@@ -66,7 +76,7 @@ public class Controller {
 			for(int i = 0; i<colFilme.length(); i++){
 				JSONObject jsonFilm = colFilme.getJSONObject(i);
 				try{
-					Film film = Mapper.jsonToFilm(jsonFilm);
+					Film film = mapper.jsonToFilm(jsonFilm);
 					tmpFilme.add(film);
 				}
 				catch(NullPointerException e){return new ResponseObject(false, e.getMessage(), null);}
@@ -86,7 +96,7 @@ public class Controller {
 			for(int i = 0; i<colTags.length(); i++){
 				JSONObject jsonTag = colTags.getJSONObject(i);
 				try{
-					Tag	tag = Mapper.jsonToTag(jsonTag);
+					Tag	tag = mapper.jsonToTag(jsonTag);
 					tmpTags.add(tag);
 				}
 				catch(NullPointerException e){return new ResponseObject(false, e.getMessage(), null);}
@@ -105,7 +115,7 @@ public class Controller {
 		
 		if(resp.has("statusOK") && resp.getBoolean("statusOK")){
 			try{
-				Film film = Mapper.jsonToFilm(resp);
+				Film film = mapper.jsonToFilm(resp);
 				filme.add(film);
 				return new ResponseObject(true, null, film);
 			}
@@ -115,7 +125,7 @@ public class Controller {
 	}
 	
 	public ResponseObject updateFilm(Film f, String content){
-		JSONObject req = Mapper.filmToJson(f);
+		JSONObject req = mapper.filmToJson(f);
 		if(req.has("content")){
 			req.remove("content");
 			req.put("content", content);
@@ -149,7 +159,7 @@ public class Controller {
 		
 		if(resp.has("statusOK") && resp.getBoolean("statusOK")){
 			try{
-				Tag tag = Mapper.jsonToTag(resp);
+				Tag tag = mapper.jsonToTag(resp);
 				tags.add(tag);
 				return new ResponseObject(true, null, null);
 			}
@@ -177,7 +187,7 @@ public class Controller {
 	public ResponseObject deleteTagFromFilm(Film f, String s){
 		Tag tmp = getTag(s);
 		f.getTags().remove(tmp);
-		JSONObject req = Mapper.filmToJson(f);
+		JSONObject req = mapper.filmToJson(f);
 		JSONObject resp = HttpHandler.sendRequestWithPayload(f.getLinkToUpdate(), "POST", req);
 		System.out.println(resp.toString());
 		
@@ -191,10 +201,10 @@ public class Controller {
 	}
 	
 	public ResponseObject addTagToFilm(Film f, String s){
-		JSONObject req = Mapper.filmToJson(f);
+		JSONObject req = mapper.filmToJson(f);
 		if(req.has("tags")){
 			JSONArray filmtags = req.getJSONArray("tags");
-			filmtags.put(Mapper.tagToJson(getTag(s)));
+			filmtags.put(mapper.tagToJson(getTag(s)));
 		}
 		JSONObject resp = HttpHandler.sendRequestWithPayload(f.getLinkToUpdate(), "POST", req);
 		System.out.println(resp.toString());

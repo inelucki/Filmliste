@@ -22,14 +22,14 @@ public class Film extends RequestStatus {
     @ElementCollection
     private List<String> pictures;
     @ElementCollection
-    private List<Tag> tags;
+    private List<Long> tags;
 
     protected Film(){}
     
     @JsonCreator
     public Film(boolean statusOK, String errormessage, @JsonProperty("idNumber") Long idNumber,
     			@JsonProperty("name") String name, @JsonProperty("content") String content,
-    			@JsonProperty("pictures") List<String> pictures, @JsonProperty("tags") List<Tag> tags) {
+    			@JsonProperty("pictures") List<String> pictures, @JsonProperty("tags") List<Long> tags) {
     	super(statusOK, errormessage);
     	this.idNumber = idNumber;
         this.content = content;
@@ -54,7 +54,7 @@ public class Film extends RequestStatus {
     	return name;
     }
     
-    public List<Tag> getTags(){
+    public List<Long> getTags(){
     	return tags;
     }
     
@@ -66,7 +66,7 @@ public class Film extends RequestStatus {
     	this.content=content;
     }
     
-	public void setTags(List<Tag> tags){
+	public void setTags(List<Long> tags){
     	this.tags=tags;
     }
 

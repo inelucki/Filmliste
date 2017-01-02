@@ -203,7 +203,7 @@ public class UI extends Application {
 		if(resp.isOk()){
 			for(Node n : flowpane.getChildren()){
 				if(n instanceof CheckBox){
-					if(controller.getTag(((CheckBox) n).getText()).equals(controller.getTag(str))){
+					if(((CheckBox) n).getText().equals(str)){
 						flowpane.getChildren().remove(n);
 						break;
 					}

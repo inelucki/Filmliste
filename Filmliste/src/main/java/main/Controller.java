@@ -3,9 +3,12 @@ package main;
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.Link;
@@ -72,7 +75,7 @@ public class Controller {
 		else{
 			tagRepo.delete(tag);
 			for(Film f : filmRepo.findAll()){
-				f.getTags().remove(tag);
+				f.getTags().remove(tag.getIdNumber());
 				filmRepo.save(f);
 			}
 			return new ResponseEntity<RequestStatus>(new RequestStatus(true, null), HttpStatus.OK);
@@ -162,14 +165,17 @@ public class Controller {
 			return new ResponseEntity<Film>(f, HttpStatus.OK); 
 		}
 		else{
-			//TODO
 			if(payload.containsKey("content") && payload.get("content") instanceof String){
 				film.setContent((String) payload.get("content"));
 			}
 			if(payload.containsKey("tags") && payload.get("tags") instanceof List<?>){
-				List<Tag> colTags = (List<Tag>) payload.get("tags");
+				List<HashMap<String, Integer>> colTags = (List<HashMap<String, Integer>>) payload.get("tags");
+				List<Long> tagIDs = new LinkedList<>();
+				for(HashMap<String, Integer> map : colTags){
+					tagIDs.add(map.get("idNumber").longValue());
+				}
 				film.getTags().clear();
-				film.getTags().addAll(colTags);
+				film.getTags().addAll(tagIDs);
 			}
 			
 			filmRepo.save(film);

@@ -4,8 +4,14 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class Mapper {
+	
+	private final Controller controller;
+	
+	public Mapper(Controller con){
+		controller = con;
+	}
 
-	public static JSONObject filmToJson(Film film){
+	public JSONObject filmToJson(Film film){
 		JSONObject json = new JSONObject();
 		json.put("name", film.getName());
 		json.put("idNumber", film.getId());
@@ -20,7 +26,7 @@ public class Mapper {
 		return json;
 	}
 	
-	public static Film jsonToFilm(JSONObject json) throws NullPointerException{
+	public Film jsonToFilm(JSONObject json) throws NullPointerException{
 		if(json.has("idNumber") && json.has("name") && json.has("content") && json.has("_links")){
 			JSONObject links = json.getJSONObject("_links");
 			if(links.has("delete") && links.has("update")){
@@ -35,15 +41,13 @@ public class Mapper {
 					film.setContent(content);
 				}
 						
-				if(json.has("tags")){
+				if(json.has("tags") && !json.isNull("tags")){
 					JSONArray colTags = json.getJSONArray("tags");
 					for(int i = 0; i<colTags.length(); i++){
-						JSONObject jsonTag = colTags.getJSONObject(i);
-						try{
-							Tag t = jsonToTag(jsonTag);
-							film.getTags().add(t);
+						Long tagID = colTags.getLong(i);
+						if(controller.existTag(tagID)){
+							film.addTag(controller.getTag(tagID));
 						}
-						catch(NullPointerException e){/* ignore */}
 					}
 				}
 				
@@ -54,14 +58,14 @@ public class Mapper {
 		else{throw new NullPointerException("nicht alle felder in der antwort enthalten.");}
 	}
 	
-	public static JSONObject tagToJson(Tag tag){
+	public JSONObject tagToJson(Tag tag){
 		JSONObject json = new JSONObject();
 		json.put("name", tag.getTag());
 		json.put("idNumber", tag.getId());
 		return json;
 	}
 	
-	public static Tag jsonToTag(JSONObject json) throws NullPointerException{
+	public Tag jsonToTag(JSONObject json) throws NullPointerException{
 		if(json.has("name") && json.has("idNumber") && json.has("_links")){
 			JSONObject links = json.getJSONObject("_links");
 			if(links.has("delete")){
