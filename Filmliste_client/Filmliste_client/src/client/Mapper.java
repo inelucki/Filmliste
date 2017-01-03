@@ -23,18 +23,25 @@ public class Mapper {
 		}
 		json.put("tags", colTags);
 		
+		JSONArray colPics = new JSONArray();
+		for(PictureData pidId : film.getPictures()){
+			colPics.put(pidId.getNumberID());
+		}
+		json.put("pictures", colPics);
+		
 		return json;
 	}
 	
 	public Film jsonToFilm(JSONObject json) throws NullPointerException{
 		if(json.has("idNumber") && json.has("name") && json.has("content") && json.has("_links")){
 			JSONObject links = json.getJSONObject("_links");
-			if(links.has("delete") && links.has("update")){
+			if(links.has("delete") && links.has("update") && links.has("uploadpicture")){
 				String name = json.getString("name");
 				Long id = json.getLong("idNumber");
 				String updateLink = links.getJSONObject("update").getString("href");
 				String deleteLink = links.getJSONObject("delete").getString("href");
-				Film film = new Film(name, id, updateLink, deleteLink);
+				String upLoadLink = links.getJSONObject("uploadpicture").getString("href");
+				Film film = new Film(name, id, updateLink, deleteLink, upLoadLink);
 				
 				if(json.has("content") && !json.isNull("content")){
 					String content = json.getString("content");
@@ -48,6 +55,20 @@ public class Mapper {
 						if(controller.existTag(tagID)){
 							film.addTag(controller.getTag(tagID));
 						}
+					}
+				}
+				
+				if(json.has("pictures") && !json.isNull("pictures")){
+					JSONArray colPics = json.getJSONArray("pictures");
+					for(int i = 0; i<colPics.length(); i++){
+						Long picID = colPics.getLong(i);
+						
+						String picLink = "";
+						if(links.has(""+picID)){
+							picLink = links.getJSONObject(""+picID).getString("href");
+						}
+						PictureData dt = new PictureData(picID, picLink);
+						film.getPictures().add(dt);
 					}
 				}
 				

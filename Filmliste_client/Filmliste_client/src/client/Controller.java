@@ -1,7 +1,9 @@
 package client;
 
+import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
+import javafx.scene.image.Image;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -54,6 +56,12 @@ public class Controller {
 					ResponseObject respReadTagliste = readTagliste();
 					if(respReadTagliste.isOk()){
 						resp = readFilmliste();
+						for(Film f : filme){
+							ResponseObject ign = loadMissingPictures(f);
+							if(!ign.isOk()){
+								System.out.println(ign.getInfoMessage());
+							}
+						}
 					}
 					else{resp = respReadTagliste;}
 				}
@@ -216,6 +224,42 @@ public class Controller {
 		else{return new ResponseObject(false, resp.getString("errormessage"), null);}
 	}
 	
+	public ResponseObject addPicture(Film film, File file){
+		JSONObject resp = HttpHandler.sendPicture(film.getLinkToUpload(), file);
+		System.out.println(resp.toString());
+		
+		if(resp.has("statusOK") && resp.getBoolean("statusOK")){
+			try{
+				Film tmp = mapper.jsonToFilm(resp);
+				for(PictureData dt : tmp.getPictures()){
+					if(!film.getPictures().contains(dt)){
+						film.getPictures().add(dt);
+					}
+				}
+				
+				return loadMissingPictures(film);
+			}
+			catch(NullPointerException e){
+				return new ResponseObject(false, "Nullpointer im Mapper", null);
+			}
+		}
+		else{return new ResponseObject(false, resp.getString("errormessage"), null);}
+	}
+	
+	private ResponseObject loadMissingPictures(Film film){
+		for(PictureData dt : film.getPictures()){
+			if(dt.getData() == null){
+				Image im = HttpHandler.retrievePicture(dt.getLink());
+				if(im != null){
+					dt.setData(im);
+				}
+				else{
+					return new ResponseObject(false, "Bild konnte nicht geladen werden.", null);
+				}
+			}
+		}
+		return new ResponseObject(true, null, null);
+	}
 }
 
 //@Override

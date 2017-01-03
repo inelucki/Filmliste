@@ -1,5 +1,6 @@
 package main.model;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import javax.persistence.ElementCollection;
@@ -20,7 +21,7 @@ public class Film extends RequestStatus {
 	private String name;
     private String content;
     @ElementCollection
-    private List<String> pictures;
+    private List<Long> pictures;
     @ElementCollection
     private List<Long> tags;
 
@@ -29,7 +30,7 @@ public class Film extends RequestStatus {
     @JsonCreator
     public Film(boolean statusOK, String errormessage, @JsonProperty("idNumber") Long idNumber,
     			@JsonProperty("name") String name, @JsonProperty("content") String content,
-    			@JsonProperty("pictures") List<String> pictures, @JsonProperty("tags") List<Long> tags) {
+    			@JsonProperty("pictures") List<Long> pictures, @JsonProperty("tags") List<Long> tags) {
     	super(statusOK, errormessage);
     	this.idNumber = idNumber;
         this.content = content;
@@ -40,6 +41,7 @@ public class Film extends RequestStatus {
     
     public Film(String name) {
 	    this.name = name;
+	    pictures = new LinkedList<>();
 	}
 
     public Long getIdNumber(){
@@ -58,7 +60,7 @@ public class Film extends RequestStatus {
     	return tags;
     }
     
-    public List<String> getPictures(){
+    public List<Long> getPictures(){
     	return pictures;
     }
     
@@ -70,7 +72,7 @@ public class Film extends RequestStatus {
     	this.tags=tags;
     }
 
-	public void setPictures(List<String> pictures){
+	public void setPictures(List<Long> pictures){
 		this.pictures=pictures;
 	}
 	

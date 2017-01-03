@@ -1,13 +1,14 @@
 package client;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 
 import javafx.application.Application;
-import javafx.scene.Scene;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.Accordion;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -16,6 +17,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TitledPane;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
@@ -25,6 +28,7 @@ import javafx.stage.Stage;
 public class UI extends Application {
 	
 	private final String defaultInfo = "Es gab einen Fehler aber keine Meldung dazu. Ganz doll...";
+	private FileChooserWrapper filechooser;
 	private Controller controller;
 	private final FlowPane flowpane = new FlowPane();
 	private final Accordion accordion = new Accordion ();
@@ -45,6 +49,8 @@ public class UI extends Application {
 			showDialog("Das Programm wird beendet. Initialisierung mit folgendem Fehler abgebrochen : "+resp.getInfoMessage());
 			return;
 		}
+		
+		filechooser = new FileChooserWrapper(primaryStage);
 		
         primaryStage.setTitle("Filmliste");
         StackPane root = new StackPane();
@@ -84,6 +90,12 @@ public class UI extends Application {
     }
 	
 	private void generateTitledPane(Film f){
+		HBox pics = new HBox();
+		for(PictureData dt : f.getPictures()){
+			ImageView imView = new ImageView(dt.getData());
+			pics.getChildren().add(imView);
+		}
+		
 		TextArea ta = new TextArea();
     	ta.setText(f.getContent());
     	
@@ -96,15 +108,17 @@ public class UI extends Application {
     	HBox filmTagControl = new HBox();
     	filmTagControl.getChildren().addAll(txtFilmTag, btnAddTagToFilm, btnDeleteTagFromFilm);
     	
+    	Button btnAddPicture = new Button("Add Picture");
+    	btnAddPicture.setOnAction(k -> uploadPicture(f, filechooser.choosePicture()));
     	Button btnUpdate = new Button("Update");
     	btnUpdate.setOnAction(k -> updateFilm(f, ta));
     	Button btnDelete = new Button("Delete");
     	btnDelete.setOnAction(k -> deleteFilm(f));
     	HBox filmControl = new HBox();
-    	filmControl.getChildren().addAll(btnUpdate, btnDelete);
+    	filmControl.getChildren().addAll(btnAddPicture, btnUpdate, btnDelete);
     	
     	VBox vbxFilm = new VBox();
-    	vbxFilm.getChildren().addAll(lblTags, filmTagControl, ta, filmControl);
+    	vbxFilm.getChildren().addAll(pics, lblTags, filmTagControl, ta, filmControl);
     	
     	TitledPane p = new TitledPane();
     	p.setContent(vbxFilm);
@@ -251,6 +265,23 @@ public class UI extends Application {
 		}
 		else{
 			showDialog("Diesen Tag gibt es nicht!");
+		}
+	}
+	
+	private void uploadPicture(Film film, File file){
+		if(file != null){
+			ResponseObject resp = controller.addPicture(film, file);
+			if(resp.isOk()){
+				pns.remove(film);
+				generateTitledPane(film);
+				refreshFilter();
+			}
+			else{
+				showDialog(resp.getInfoMessage());
+			}
+		}
+		else{
+			showDialog("Kein Bild gefunden.");
 		}
 	}
 	

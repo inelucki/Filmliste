@@ -3,29 +3,36 @@ package main;
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
 import org.springframework.hateoas.Link;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import main.jpa.FilmRepository;
+import main.jpa.PictureRepository;
 import main.jpa.TagRepository;
 import main.model.Film;
 import main.model.Filmliste;
 import main.model.Index;
+import main.model.PictureEntity;
 import main.model.RequestStatus;
 import main.model.Tag;
 import main.model.TagListe;
@@ -37,6 +44,8 @@ public class Controller {
 	private FilmRepository filmRepo;
 	@Autowired
 	private TagRepository tagRepo;
+	@Autowired
+	private PictureRepository picRepo;
 	
 	@RequestMapping(value="/index", method=RequestMethod.GET)
 	public HttpEntity<Index> index(){
@@ -115,8 +124,7 @@ public class Controller {
     public HttpEntity<Filmliste> filmliste() {
     	List<Film> elements = new LinkedList<>();
     	for(Film f : filmRepo.findAll()){
-    		f.add(linkTo(methodOn(Controller.class).deleteFilm(f.getIdNumber())).withRel("delete"));
-    		f.add(linkTo(methodOn(Controller.class).updateFilm(f.getIdNumber(), null)).withRel("update"));
+    		f = addLinksToFilm(f);
     		elements.add(f);
     	}
     	
@@ -141,9 +149,7 @@ public class Controller {
 			else{
 				filmRepo.save(film);
 				film.setStatusOK(true);
-				film.add(linkTo(methodOn(Controller.class).filmliste()).withRel("filmliste"));
-				film.add(linkTo(methodOn(Controller.class).deleteFilm(film.getIdNumber())).withRel("delete"));
-				film.add(linkTo(methodOn(Controller.class).updateFilm(film.getIdNumber(), null)).withRel("update"));
+				film = addLinksToFilm(film);
 				return new ResponseEntity<Film>(film, HttpStatus.OK);
 			}
 		}
@@ -177,6 +183,13 @@ public class Controller {
 				film.getTags().clear();
 				film.getTags().addAll(tagIDs);
 			}
+			if(payload.containsKey("pictures") && payload.get("pictures") instanceof List<?>){
+				List<Integer> picList = (List<Integer>) payload.get("pictures");
+				List<Long> picIds = new LinkedList<>();
+				for(Integer i : picList){picIds.add(i.longValue());}
+				film.getPictures().clear();
+				film.getPictures().addAll(picIds);
+			}
 			
 			filmRepo.save(film);
 			film.setStatusOK(true);
@@ -191,11 +204,83 @@ public class Controller {
 			return new ResponseEntity<RequestStatus>(new RequestStatus(false, "no_such_film"), HttpStatus.OK);
 		}
 		else{
+			List<Long> picIDs = film.getPictures();
+			for(PictureEntity ent : picRepo.findAll()){
+				if(picIDs.contains(ent.getIdNumber())){
+					picRepo.delete(ent);
+				}
+			}
 			filmRepo.delete(film);
+			
 			return new ResponseEntity<RequestStatus>(new RequestStatus(true, null), HttpStatus.OK);
 		}
 	}
 	
+	@RequestMapping(value="/picture/{idNumber}", method=RequestMethod.PUT)
+    public HttpEntity<Film> uploadPicture(@PathVariable Long idNumber, @RequestParam(value="picture", required=false) MultipartFile file,
+            RedirectAttributes redirectAttributes) {
+		Film film = filmRepo.findOne(idNumber);
+		if(film == null){
+			film = new Film("");
+			film.setStatusOK(false);
+			film.setErrormessage("no such film");
+			return new ResponseEntity<Film>(film, HttpStatus.OK);
+		}
+		else{
+			try{
+				PictureEntity pic = new PictureEntity(file.getBytes());
+				picRepo.save(pic);
+				film.getPictures().add(pic.getIdNumber());
+				filmRepo.save(film);
+				
+				film.setStatusOK(true);
+				film = addLinksToFilm(film);
+				return new ResponseEntity<Film>(film, HttpStatus.OK);
+			}
+			catch(IOException e){
+				Film f = new Film("");
+				f.setStatusOK(false);
+				f.setErrormessage("IOException beim lesen des bytearray!");
+				return new ResponseEntity<Film>(f, HttpStatus.OK);
+			}
+		}
+	}
+	
+	@RequestMapping(value="/picture/{idNumber}", method=RequestMethod.GET)
+    public ResponseEntity<Resource> getPicture(@PathVariable Long idNumber) {
+		PictureEntity pic = picRepo.findOne(idNumber);
+		Resource res = new ByteArrayResource(pic.getPic());
+		return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"picture\"")
+                .body(res);
+	}
+	
+	@RequestMapping(value="/picture/{idNumber}", method=RequestMethod.DELETE)
+    public HttpEntity<RequestStatus> deletePicture(@PathVariable Long idNumber) {
+		PictureEntity pic = picRepo.findOne(idNumber);
+		Long picId = pic.getIdNumber();
+		picRepo.delete(pic);
+		for(Film film : filmRepo.findAll()){
+			if(film.getPictures().contains(picId)){
+				film.getPictures().remove(picId);
+				filmRepo.save(film);
+			}
+		}
+		
+		return new ResponseEntity<RequestStatus>(new RequestStatus(true, null), HttpStatus.OK);
+	}
+	
+	private Film addLinksToFilm(Film film){
+		film.add(linkTo(methodOn(Controller.class).deleteFilm(film.getIdNumber())).withRel("delete"));
+		film.add(linkTo(methodOn(Controller.class).updateFilm(film.getIdNumber(), null)).withRel("update"));
+		film.add(linkTo(methodOn(Controller.class).uploadPicture(film.getIdNumber(), null, null)).withRel("uploadpicture"));
+		
+		for(Long picID : film.getPictures()){
+			film.add(linkTo(methodOn(Controller.class).getPicture(picID)).withRel(""+picID));
+		}
+		
+		return film;
+	}
 	
 //	@RequestMapping(value="/filme/{filmname}", method=RequestMethod.GET)
 //	public HttpEntity<Film> getFilm(@PathVariable String filmname){
