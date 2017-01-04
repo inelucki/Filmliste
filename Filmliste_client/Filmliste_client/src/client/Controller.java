@@ -10,7 +10,7 @@ import org.json.JSONObject;
 
 public class Controller {
 
-	private static final String HOSTINDEX = "http://localhost:8080/index";
+	private static final String HOSTINDEX = "https://localhost:8443/index";
 	private Mapper mapper;
 	private String linkToFilmlist="";
 	private String linkToTaglist="";

@@ -6,11 +6,12 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.Base64;
+
+import javax.net.ssl.HttpsURLConnection;
 
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -24,10 +25,27 @@ public class HttpHandler {
 	private static final String user = "ine";
 	private static final String pw = "pw";
 	
+	// for tests on localhost only
+	static {
+	    //for localhost testing only
+	    javax.net.ssl.HttpsURLConnection.setDefaultHostnameVerifier(
+	    new javax.net.ssl.HostnameVerifier(){
+
+	        public boolean verify(String hostname,
+	                javax.net.ssl.SSLSession sslSession) {
+	            if (hostname.equals("localhost")) {
+	                return true;
+	            }
+	            return false;
+	        }
+	    });
+	}
+
+	
 	public static JSONObject sendSimpleRequest(String urlRaw, String method){
     	try {
 			URL url = new URL(urlRaw);
-			HttpURLConnection con = (HttpURLConnection) url.openConnection();
+			HttpsURLConnection con = (HttpsURLConnection) url.openConnection();
 			con.setRequestProperty("Authorization", "Basic "+base64.encodeToString(new String(user+":"+pw).getBytes()));
 			con.setRequestMethod(method);
 			JSONObject obj = null;
@@ -51,7 +69,7 @@ public class HttpHandler {
     	
     	try {
 			URL url = new URL(urlRaw);
-			HttpURLConnection con = (HttpURLConnection) url.openConnection();
+			HttpsURLConnection con = (HttpsURLConnection) url.openConnection();
 			con.setRequestMethod(method);
 			con.setRequestProperty("Authorization", "Basic "+base64.encodeToString(new String(user+":"+pw).getBytes()));
 			con.setDoOutput(true);
@@ -86,7 +104,7 @@ public class HttpHandler {
 	    	String boundary = Long.toHexString(System.currentTimeMillis()); // Just generate some unique random value.
 	    	String CRLF = "\r\n"; // Line separator required by multipart/form-data.
 	
-	    	HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+	    	HttpsURLConnection connection = (HttpsURLConnection) new URL(url).openConnection();
 	    	connection.setDoOutput(true);
 	    	connection.setRequestProperty("Authorization", "Basic "+base64.encodeToString(new String(user+":"+pw).getBytes()));
 	    	connection.setRequestMethod("PUT");
@@ -129,7 +147,7 @@ public class HttpHandler {
     public static Image retrievePicture(String urlRaw){
     	try {
 			URL url = new URL(urlRaw);
-			HttpURLConnection con = (HttpURLConnection) url.openConnection();
+			HttpsURLConnection con = (HttpsURLConnection) url.openConnection();
 			con.setRequestMethod("GET");
 			con.setRequestProperty("Authorization", "Basic "+base64.encodeToString(new String(user+":"+pw).getBytes()));
 			Image im = new Image(con.getInputStream());
