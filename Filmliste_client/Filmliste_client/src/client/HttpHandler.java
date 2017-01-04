@@ -10,6 +10,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.util.Base64;
 
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -19,11 +20,15 @@ import javafx.scene.image.Image;
 public class HttpHandler {
 
 	private static final Charset charset = Charset.forName("UTF-8");
+	private static final Base64.Encoder base64 = Base64.getEncoder();
+	private static final String user = "ine";
+	private static final String pw = "pw";
 	
 	public static JSONObject sendSimpleRequest(String urlRaw, String method){
     	try {
 			URL url = new URL(urlRaw);
 			HttpURLConnection con = (HttpURLConnection) url.openConnection();
+			con.setRequestProperty("Authorization", "Basic "+base64.encodeToString(new String(user+":"+pw).getBytes()));
 			con.setRequestMethod(method);
 			JSONObject obj = null;
 			
@@ -48,6 +53,7 @@ public class HttpHandler {
 			URL url = new URL(urlRaw);
 			HttpURLConnection con = (HttpURLConnection) url.openConnection();
 			con.setRequestMethod(method);
+			con.setRequestProperty("Authorization", "Basic "+base64.encodeToString(new String(user+":"+pw).getBytes()));
 			con.setDoOutput(true);
 			con.setRequestProperty("Accept-Charset", charset.name());
 			con.setRequestProperty("Content-Type", "application/json;charset=" + charset.name());
@@ -82,6 +88,7 @@ public class HttpHandler {
 	
 	    	HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
 	    	connection.setDoOutput(true);
+	    	connection.setRequestProperty("Authorization", "Basic "+base64.encodeToString(new String(user+":"+pw).getBytes()));
 	    	connection.setRequestMethod("PUT");
 	    	connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
 	
@@ -124,6 +131,7 @@ public class HttpHandler {
 			URL url = new URL(urlRaw);
 			HttpURLConnection con = (HttpURLConnection) url.openConnection();
 			con.setRequestMethod("GET");
+			con.setRequestProperty("Authorization", "Basic "+base64.encodeToString(new String(user+":"+pw).getBytes()));
 			Image im = new Image(con.getInputStream());
 			return im;
 			

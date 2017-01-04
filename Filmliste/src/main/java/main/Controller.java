@@ -29,6 +29,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import main.jpa.FilmRepository;
 import main.jpa.PictureRepository;
 import main.jpa.TagRepository;
+import main.jpa.UserRepository;
 import main.model.Film;
 import main.model.Filmliste;
 import main.model.Index;
@@ -36,16 +37,25 @@ import main.model.PictureEntity;
 import main.model.RequestStatus;
 import main.model.Tag;
 import main.model.TagListe;
+import main.model.User;
+import main.security.CurrentUser;
 
 @RestController
 public class Controller {
 	
-	@Autowired
 	private FilmRepository filmRepo;
-	@Autowired
 	private TagRepository tagRepo;
-	@Autowired
 	private PictureRepository picRepo;
+	private UserRepository userRepo;
+	
+	@Autowired
+	public Controller(FilmRepository filmRepo, TagRepository tagRepo,
+					PictureRepository picRepo, UserRepository userRepo){
+		this.filmRepo=filmRepo;
+		this.tagRepo=tagRepo;
+		this.picRepo=picRepo;
+		this.userRepo=userRepo;
+	}
 	
 	@RequestMapping(value="/index", method=RequestMethod.GET)
 	public HttpEntity<Index> index(){
@@ -267,6 +277,14 @@ public class Controller {
 			}
 		}
 		
+		return new ResponseEntity<RequestStatus>(new RequestStatus(true, null), HttpStatus.OK);
+	}
+	
+	@RequestMapping(value="/changepassw", method=RequestMethod.POST)
+	public HttpEntity<RequestStatus> changePassword(@RequestParam(value="pw", required=true) String newpw,
+			@CurrentUser User user){
+		user.setPassword(newpw);
+		userRepo.save(user);
 		return new ResponseEntity<RequestStatus>(new RequestStatus(true, null), HttpStatus.OK);
 	}
 	
